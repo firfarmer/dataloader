@@ -68,10 +68,10 @@ public class CSVColumnVisitor {
             else
                 first = false;
 
-            writer.write(QUOTE);
+                writer.write(QUOTE);
 
-            for (int i = 0, len = column.length(); i < len; i++) {
-                char c = column.charAt(i);
+                for (int i = 0, len = column.length(); i < len; i++) {
+                    char c = column.charAt(i);
                 if (c == QUOTE)
                     writer.write("\"\"");
                 else

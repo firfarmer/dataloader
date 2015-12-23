@@ -24,7 +24,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 package com.salesforce.dataloader.dao;
-
 import org.apache.log4j.Logger;
 
 import com.salesforce.dataloader.config.Config;
@@ -43,10 +42,9 @@ public class DataAccessObjectFactory {
     static public final String CSV_WRITE_TYPE = "csvWrite";
     static public final String DATABASE_READ_TYPE = "databaseRead";
     static public final String DATABASE_WRITE_TYPE = "databaseWrite";
-
     public DataAccessObject getDaoInstance(String daoType, Config config)
             throws DataAccessObjectInitializationException {
-        DataAccessObject dao = null;
+        DataAccessObject dao;
 
         logger.info(Messages.getFormattedString("DataAccessObjectFactory.creatingDao", new String[] {config.getString(Config.DAO_NAME), daoType}));
 
