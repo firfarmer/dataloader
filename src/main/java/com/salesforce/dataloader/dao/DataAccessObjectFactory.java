@@ -24,6 +24,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 package com.salesforce.dataloader.dao;
+import com.salesforce.dataloader.dao.blob.BlobWriter;
 import org.apache.log4j.Logger;
 
 import com.salesforce.dataloader.config.Config;
@@ -42,6 +43,7 @@ public class DataAccessObjectFactory {
     static public final String CSV_WRITE_TYPE = "csvWrite";
     static public final String DATABASE_READ_TYPE = "databaseRead";
     static public final String DATABASE_WRITE_TYPE = "databaseWrite";
+    static public final String BLOB_WRITE_TYPE = "blobWrite";
     public DataAccessObject getDaoInstance(String daoType, Config config)
             throws DataAccessObjectInitializationException {
         DataAccessObject dao;
@@ -56,6 +58,8 @@ public class DataAccessObjectFactory {
             dao = new DatabaseReader(config);
         } else if (DATABASE_WRITE_TYPE.equalsIgnoreCase(daoType)) {
             dao = new DatabaseWriter(config);
+        } else if (BLOB_WRITE_TYPE.equalsIgnoreCase(daoType)) {
+            dao = new BlobWriter(config.getString(Config.DAO_NAME), config);
         } else {
             String errMsg = Messages.getFormattedString("DataAccessObjectFactory.daoTypeNotSupported", daoType);
             logger.error(errMsg);
