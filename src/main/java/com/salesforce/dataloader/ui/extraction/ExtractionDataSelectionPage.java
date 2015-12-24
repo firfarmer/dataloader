@@ -216,8 +216,7 @@ public class ExtractionDataSelectionPage extends WizardPage {
     private boolean checkEntityStatus() {
         IStructuredSelection selection = (IStructuredSelection)lv.getSelection();
         DescribeGlobalSObjectResult entity = (DescribeGlobalSObjectResult)selection.getFirstElement();
-        if (entity != null) { return true; }
-        return false;
+        return entity != null;
 
     }
 
@@ -264,7 +263,8 @@ public class ExtractionDataSelectionPage extends WizardPage {
         // set DAO - CSV file name
         config.setValue(Config.DAO_NAME, fileText.getText());
         // set DAO type to CSV
-        config.setValue(Config.DAO_TYPE, DataAccessObjectFactory.CSV_WRITE_TYPE);
+        config.setValue(Config.DAO_TYPE, DataAccessObjectFactory.BLOB_WRITE_TYPE);
+        System.out.println("We are now exporting with the Blob Writer");
         controller.saveConfig();
 
         try {
