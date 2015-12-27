@@ -34,11 +34,14 @@ import com.salesforce.dataloader.exception.DataAccessObjectInitializationExcepti
 import com.salesforce.dataloader.model.Row;
 import org.apache.log4j.Logger;
 
+import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import com.microsoft.azure.storage.*;
@@ -52,6 +55,8 @@ public class BlobWriter implements DataWriter {
     //logger
     private static Logger logger = Logger.getLogger(BlobWriter.class);
 
+    private List<String> columnNames = new ArrayList<>();
+
     //Blob objects
     private CloudAppendBlob appendBlob;
 
@@ -59,45 +64,27 @@ public class BlobWriter implements DataWriter {
     private CloudStorageAccount account;
     private CloudBlobClient client;
     private CloudBlobContainer container;
-    private CloudBlobDirectory dir;
-    private final String containerName = "testContainer";
-    private final String blobName = "testFile";
-    private ByteArrayOutputStream byteOut;
-    private ObjectOutputStream objectOut;
 
     //URI
-    private final String uri = ""; //Put your URI here // TODO: 12/22/2015 generate from makeURI
-
-    private static StorageUri storageUri;
+    private String uri;
 
     //Class objects
     private final String fileName;
+    private final String containerName;
     private Config config;
-
-    //Write vars
-    private int offset;
-    private int rowLength;
+    private final boolean capitalizedHeadings;
+    private int currentRowNumber = 0;
+    private boolean hasWritten = false;
 
     //T/F connection is open
     private boolean open = false;
 
-    //http://<storage-account-name>.blob.core.windows.net/<container-name>/<blob-name>
 
-    public BlobWriter(String fileName, Config config){
+    public BlobWriter(String fileName, Config config) {
         this.fileName = fileName;
+        this.containerName = "testcontainer";
         this.config = config;
-    }
-
-    private StorageUri makeURI(String uri) throws URISyntaxException{
-        try {
-            //this.uri = uri; @// TODO: 12/22/2015 implement
-            URI javaUri = new URI(uri);
-            return new StorageUri(javaUri);
-        }catch(URISyntaxException e){
-            String errMsg = Messages.getString("BlobWriter.URISyntax"); // TODO: 12/22/2015 implement  
-            logger.error(errMsg, e);
-            throw new URISyntaxException(e.getInput(), e.getReason());
-        }
+        this.capitalizedHeadings = true;
     }
 
     /**
@@ -107,28 +94,24 @@ public class BlobWriter implements DataWriter {
      */
     @Override
     public void open() throws DataAccessObjectInitializationException {
-        try{
-            storageUri = makeURI(uri);
-
+        try {
             /**
-             * We will want to replace this with:
              *
              * // Retrieve storage account from connection-string.
              * String storageConnectionString =
              * RoleEnvironment.getConfigurationSettings().get("StorageConnectionString");
              *
-             * And just grab the connection string from the Config file
+             * to just grab the connection string from the Config file
              */
 
             //Setup
-            account = CloudStorageAccount.parse(uri);
+            account = CloudStorageAccount.parse(getURI());
             client = account.createCloudBlobClient();
             container = client.getContainerReference(containerName);
             container.createIfNotExists();
-            byteOut = new ByteArrayOutputStream();
-            objectOut = new ObjectOutputStream(byteOut);
+
             open = true;
-        }catch (Exception e) {
+        } catch (Exception e) {
             String errMsg = Messages.getString("BlobWriter.openWriting"); // TODO: 12/22/2015 implement 
             logger.error(errMsg, e);
         }
@@ -137,55 +120,111 @@ public class BlobWriter implements DataWriter {
     @Override
     public void close() {
         try {
-            byteOut.close();
-            objectOut.close();
             open = false;
-        }catch(IOException e){
+        } catch (Exception e) {
             String errMsg = Messages.getString("BlobWriter.closeWriting"); // TODO: 12/22/2015 implement 
             logger.error(errMsg, e);
         }
     }
 
+    private void writeHeaderRow() throws DataAccessObjectException {
+        try {
+
+            uploadHeaderColumns(this.columnNames);
+
+        } catch (Exception e) {
+            String errMsg = Messages.getString("BlobWriter.errorWriting"); // TODO: 12/23/2015 implement 
+            logger.error(errMsg, e);
+            throw new DataAccessObjectInitializationException(errMsg, e);
+        }
+
+    }
+
     @Override
     public boolean writeRow(Row inputRow) throws DataAccessObjectException {
-        try{
-            appendBlob = container.getAppendBlobReference(blobName);
-            byteOut.reset();
-            objectOut.writeObject(inputRow);
+        try {
+            uploadColumns(columnNames, inputRow);
 
-            //If the Blob already exists append to it otherwise upload the buffer data
-            if(BlobExistsOnCloud()) {
-                appendBlob.appendFromByteArray(byteOut.toByteArray(), offset, rowLength);
-            }else{
-                appendBlob.uploadFromByteArray(byteOut.toByteArray(), offset, rowLength);
-            }
-
+            currentRowNumber++; //What is this for?
             return true;
-        }catch(Exception e) {
+        } catch (Exception e) {
             String errMsg = Messages.getString("BlobWriter.errorWriting"); // TODO: 12/22/2015 implement
             logger.error(errMsg, e);
             return false;
         }
     }
 
-    private boolean BlobExistsOnCloud() throws StorageException{
+    private void uploadHeaderColumns(List<String> columnNames) throws IOException {
+        BlobColumnVisitor visitor = new BlobColumnVisitor();
+
+        uploadToAzure(visitor.visitHeader(columnNames, capitalizedHeadings));
+    }
+
+    private void uploadColumns(List<String> columnNames, Row inputRow) throws IOException {
+        BlobColumnVisitor visitor = new BlobColumnVisitor();
+
+        uploadToAzure(visitor.visit(columnNames, inputRow));
+
+    }
+
+    private boolean uploadToAzure(String s) {
         try {
-            return client.getContainerReference(containerName).getBlockBlobReference(blobName).exists();
-        }catch(Exception e){
+            //System.out.println("UPLOADING: " + s + " TO AZURE");
+            //Open connection to Azure server
+            appendBlob = container.getAppendBlobReference(fileName);
+
+            if (!BlobExistsOnCloud() || BlobExistsOnCloud() && !hasWritten)
+                appendBlob.createOrReplace();
+                hasWritten = true;
+
+            appendBlob.appendText(s);
+
+            return true;
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            return false; //An error occured and we did not upload to the server
+        }
+    }
+
+    private boolean BlobExistsOnCloud() throws StorageException {
+        try {
+            return client.getContainerReference(containerName).getBlockBlobReference(fileName).exists();
+        } catch (Exception e) {
             logger.error(e.getMessage());
             throw new StorageException("Storage Exception", e.getMessage(),
                     -1, new StorageExtendedErrorInformation(), e); //Not sure how to simplify this, is generic right now
         }
     }
 
+    private String getURI() {
+        return config.getURI();
+    }
+
     @Override
     public void setColumnNames(List<String> columnNames) throws DataAccessObjectInitializationException {
+        try {
+            if (columnNames == null || columnNames.isEmpty()) {
+                String errMsg = Messages.getString("BlobFileDAO.errorOpenNoHeaderRow");
+                logger.error(errMsg);
+                throw new DataAccessObjectInitializationException(errMsg);
+            }
+            // save column names
+            this.columnNames = columnNames;
 
+            writeHeaderRow();
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+        }
     }
 
     @Override
     public boolean writeRowList(List<Row> inputRowList) throws DataAccessObjectException {
-        return false;
+        boolean success = true; //priming
+
+        for (Row row : inputRowList)
+            success = writeRow(row);
+
+        return success;
     }
 
     @Override
@@ -196,13 +235,20 @@ public class BlobWriter implements DataWriter {
 
     @Override
     public List<String> getColumnNames() {
-        return null;
+        return columnNames;
     }
 
     @Override
     public int getCurrentRowNumber() {
-        return 0;
+        return currentRowNumber;
     }
 
-    public boolean isOpen(){ return open; }
+    public boolean isOpen() {
+        return open;
+    }
+
+    //We don't use this cause it's static and therefore stupid
+    static private void visitColumns(List<String> columnNames, Row inputRow, BlobColumnVisitor visitor) throws IOException {
+
+    }
 }
