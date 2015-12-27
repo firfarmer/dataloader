@@ -201,6 +201,9 @@ public class Config {
     public static final String READ_UTF8 = "dataAccess.readUTF8"; //$NON-NLS-1$
     public static final String WRITE_UTF8 = "dataAccess.writeUTF8"; //$NON-NLS-1$
 
+    //Azure server connectivity
+    public static final String AZURE_URI = "azure.uri";
+
     /**
      * Indicates whether a value as been changed
      */
@@ -329,6 +332,15 @@ public class Config {
         setValue(OAUTH_REDIRECTURI, DEFAULT_ENDPOINT_URL);
         setValue(OAUTH_ENVIRONMENTS, STRING_DEFAULT);
         setValue(OAUTH_ENVIRONMENT, STRING_DEFAULT);
+
+        //Azure uri
+        setValue(AZURE_URI, "DefaultEndpointsProtocol=https;" +
+                "AccountName=dataloadertesting;" +
+                "AccountKey=X+Tb5xh+baJ9TGAJL/2pekz2quSP5CbOHycUVvROeZkcbVy4oRnxKO0+sk/WZmSSaz7g8osI+poxuDfFNa5EBg==;" +
+                "BlobEndpoint=https://dataloadertesting.blob.core.windows.net/;" +
+                "TableEndpoint=https://dataloadertesting.table.core.windows.net/;" +
+                "QueueEndpoint=https://dataloadertesting.queue.core.windows.net/;" +
+                "FileEndpoint=https://dataloadertesting.file.core.windows.net/");
     }
 
     /**
@@ -491,6 +503,8 @@ public class Config {
     public <T extends Enum<T>> T getEnum(Class<T> enumClass, String name) {
         return Enum.valueOf(enumClass, getString(name));
     }
+
+    public String getURI(){ return getString(AZURE_URI);}
 
     public TimeZone getTimeZone() {
         return TimeZone.getTimeZone(getString(TIMEZONE));
