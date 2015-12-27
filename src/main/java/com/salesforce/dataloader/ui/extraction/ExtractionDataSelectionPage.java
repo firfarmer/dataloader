@@ -264,6 +264,7 @@ public class ExtractionDataSelectionPage extends WizardPage {
         config.setValue(Config.DAO_NAME, fileText.getText());
         // set DAO type to CSV
         config.setValue(Config.DAO_TYPE, DataAccessObjectFactory.BLOB_WRITE_TYPE);
+        //config.setValue(Config.DAO_TYPE, DataAccessObjectFactory.CSV_WRITE_TYPE);
         System.out.println("We are now exporting with the Blob Writer");
         controller.saveConfig();
 
