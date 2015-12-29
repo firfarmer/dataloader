@@ -203,6 +203,7 @@ public class Config {
 
     //Azure server connectivity
     public static final String AZURE_URI = "azure.uri";
+    public static final String AZURE_CONTAINER = "azure.container";
 
     /**
      * Indicates whether a value as been changed
@@ -335,6 +336,7 @@ public class Config {
 
         //Azure uri
         setValue(AZURE_URI, DEFAULT_ENDPOINT_URL);
+        setValue(AZURE_CONTAINER, STRING_DEFAULT);
     }
 
     /**
@@ -498,8 +500,10 @@ public class Config {
         return Enum.valueOf(enumClass, getString(name));
     }
 
-    public String getURI(){
-        return getString(AZURE_URI);}
+    public String getURI(){ return getString(AZURE_URI); }
+
+    public String getContainerName(){ return getString(AZURE_CONTAINER); }
+
 
     public TimeZone getTimeZone() {
         return TimeZone.getTimeZone(getString(TIMEZONE));
