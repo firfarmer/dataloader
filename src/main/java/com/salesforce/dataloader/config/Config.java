@@ -75,6 +75,7 @@ public class Config {
     public static final int DEFAULT_BULK_API_BATCH_SIZE = 2000;
     public static final long DEFAULT_BULK_API_CHECK_STATUS_INTERVAL = 5000L;
 	public static final String DEFAULT_ENDPOINT_URL = "https://login.salesforce.com";
+    public static final int DEFAULT_UPLOAD_LINES = 200;
 	
 	/*
 	 * Issue #59 - Dataloader will not read all the database rows to get a total count
@@ -204,6 +205,7 @@ public class Config {
     //Azure server connectivity
     public static final String AZURE_URI = "azure.uri";
     public static final String AZURE_CONTAINER = "azure.container";
+    public static final String AZURE_UPLOAD_LINES = "azure.uploadLines";
 
     /**
      * Indicates whether a value as been changed
@@ -337,6 +339,7 @@ public class Config {
         //Azure uri
         setValue(AZURE_URI, DEFAULT_ENDPOINT_URL);
         setValue(AZURE_CONTAINER, STRING_DEFAULT);
+        setValue(AZURE_UPLOAD_LINES, DEFAULT_UPLOAD_LINES);
     }
 
     /**
@@ -504,6 +507,7 @@ public class Config {
 
     public String getContainerName(){ return getString(AZURE_CONTAINER); }
 
+    public int getUploadLines() throws ParameterLoadException { return getInt(AZURE_UPLOAD_LINES); }
 
     public TimeZone getTimeZone() {
         return TimeZone.getTimeZone(getString(TIMEZONE));
