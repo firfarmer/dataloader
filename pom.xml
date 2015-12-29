@@ -13,6 +13,8 @@
   </organization>
 
   <properties>
+
+    <strictCheck>true</strictCheck>
     <force.version>35.0.0</force.version>
     <build.year>2015</build.year>
     <java.compile.version>1.8</java.compile.version>
