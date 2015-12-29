@@ -70,7 +70,7 @@ public class BlobWriter implements DataWriter {
 
     //Class objects
     private final String fileName;
-    private final String containerName;
+    private String containerName;
     private Config config;
     private final boolean capitalizedHeadings;
     private int currentRowNumber = 0;
@@ -82,7 +82,6 @@ public class BlobWriter implements DataWriter {
 
     public BlobWriter(String fileName, Config config) {
         this.fileName = fileName;
-        this.containerName = "testcontainer";
         this.config = config;
         this.capitalizedHeadings = true;
     }
@@ -95,18 +94,11 @@ public class BlobWriter implements DataWriter {
     @Override
     public void open() throws DataAccessObjectInitializationException {
         try {
-            /**
-             *
-             * // Retrieve storage account from connection-string.
-             * String storageConnectionString =
-             * RoleEnvironment.getConfigurationSettings().get("StorageConnectionString");
-             *
-             * to just grab the connection string from the Config file
-             */
-
             //Setup
-            account = CloudStorageAccount.parse(getURI());
+            uri = getURI();
+            account = CloudStorageAccount.parse(uri);
             client = account.createCloudBlobClient();
+            containerName = getContainerName();
             container = client.getContainerReference(containerName);
             container.createIfNotExists();
 
@@ -198,6 +190,10 @@ public class BlobWriter implements DataWriter {
 
     private String getURI() {
         return config.getURI();
+    }
+
+    private String getContainerName() {
+        return config.getContainerName();
     }
 
     @Override
