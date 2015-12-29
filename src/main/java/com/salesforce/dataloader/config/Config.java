@@ -334,13 +334,7 @@ public class Config {
         setValue(OAUTH_ENVIRONMENT, STRING_DEFAULT);
 
         //Azure uri
-        setValue(AZURE_URI, "DefaultEndpointsProtocol=https;" +
-                "AccountName=dataloadertesting;" +
-                "AccountKey=X+Tb5xh+baJ9TGAJL/2pekz2quSP5CbOHycUVvROeZkcbVy4oRnxKO0+sk/WZmSSaz7g8osI+poxuDfFNa5EBg==;" +
-                "BlobEndpoint=https://dataloadertesting.blob.core.windows.net/;" +
-                "TableEndpoint=https://dataloadertesting.table.core.windows.net/;" +
-                "QueueEndpoint=https://dataloadertesting.queue.core.windows.net/;" +
-                "FileEndpoint=https://dataloadertesting.file.core.windows.net/");
+        setValue(AZURE_URI, DEFAULT_ENDPOINT_URL);
     }
 
     /**
@@ -504,7 +498,8 @@ public class Config {
         return Enum.valueOf(enumClass, getString(name));
     }
 
-    public String getURI(){ return getString(AZURE_URI);}
+    public String getURI(){
+        return getString(AZURE_URI);}
 
     public TimeZone getTimeZone() {
         return TimeZone.getTimeZone(getString(TIMEZONE));
