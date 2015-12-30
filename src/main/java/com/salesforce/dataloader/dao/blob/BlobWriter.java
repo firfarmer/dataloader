@@ -31,6 +31,7 @@ import com.salesforce.dataloader.config.Messages;
 import com.salesforce.dataloader.dao.DataWriter;
 import com.salesforce.dataloader.exception.DataAccessObjectException;
 import com.salesforce.dataloader.exception.DataAccessObjectInitializationException;
+import com.salesforce.dataloader.exception.ParameterLoadException;
 import com.salesforce.dataloader.model.Row;
 import org.apache.log4j.Logger;
 
@@ -72,9 +73,13 @@ public class BlobWriter implements DataWriter {
     private final String fileName;
     private String containerName;
     private Config config;
+    private int uploadLines;
+    private int linesToBeUploaded;
     private final boolean capitalizedHeadings;
     private int currentRowNumber = 0;
     private boolean hasWritten = false;
+    private String uploadString;
+    private int records;
 
     //T/F connection is open
     private boolean open = false;
@@ -101,6 +106,10 @@ public class BlobWriter implements DataWriter {
             containerName = getContainerName();
             container = client.getContainerReference(containerName);
             container.createIfNotExists();
+            uploadLines = getUploadLines();
+            linesToBeUploaded=0;
+            uploadString="";
+            records=0;
 
             open = true;
         } catch (Exception e) {
@@ -112,6 +121,8 @@ public class BlobWriter implements DataWriter {
     @Override
     public void close() {
         try {
+            linesToBeUploaded=0;
+            uploadString="";
             open = false;
         } catch (Exception e) {
             String errMsg = Messages.getString("BlobWriter.closeWriting"); // TODO: 12/22/2015 implement 
@@ -155,13 +166,19 @@ public class BlobWriter implements DataWriter {
     private void uploadColumns(List<String> columnNames, Row inputRow) throws IOException {
         BlobColumnVisitor visitor = new BlobColumnVisitor();
 
-        uploadToAzure(visitor.visit(columnNames, inputRow));
+        uploadString += visitor.visit(columnNames, inputRow);
+        linesToBeUploaded++;
 
+        //We check if we have accumulated enough lines, if so then we upload to Azure, with an alternative limit of
+        //the number of records we have, in case we can't fulfill uploadLines
+        if(linesToBeUploaded==uploadLines || linesToBeUploaded==records) {
+            uploadToAzure(uploadString);
+            linesToBeUploaded=0;
+        }
     }
 
     private boolean uploadToAzure(String s) {
         try {
-            //System.out.println("UPLOADING: " + s + " TO AZURE");
             //Open connection to Azure server
             appendBlob = container.getAppendBlobReference(fileName);
 
@@ -188,6 +205,9 @@ public class BlobWriter implements DataWriter {
         }
     }
 
+    /*
+    config getters
+     */
     private String getURI() {
         return config.getURI();
     }
@@ -195,6 +215,8 @@ public class BlobWriter implements DataWriter {
     private String getContainerName() {
         return config.getContainerName();
     }
+
+    private int getUploadLines() throws ParameterLoadException { return config.getUploadLines(); }
 
     @Override
     public void setColumnNames(List<String> columnNames) throws DataAccessObjectInitializationException {
@@ -216,6 +238,8 @@ public class BlobWriter implements DataWriter {
     @Override
     public boolean writeRowList(List<Row> inputRowList) throws DataAccessObjectException {
         boolean success = true; //priming
+
+        records = inputRowList.size();
 
         for (Row row : inputRowList)
             success = writeRow(row);
