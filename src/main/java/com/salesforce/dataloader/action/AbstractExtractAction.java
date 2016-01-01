@@ -28,6 +28,7 @@ package com.salesforce.dataloader.action;
 
 import java.util.*;
 
+import com.salesforce.dataloader.config.LastRun;
 import org.apache.log4j.Logger;
 
 import com.salesforce.dataloader.action.progress.ILoaderProgress;
@@ -67,7 +68,8 @@ abstract class AbstractExtractAction extends AbstractAction {
     protected void checkDao(DataAccessObject dao) throws DataAccessObjectInitializationException {
         if (!(dao instanceof DataWriter)) {
             final String errMsg = getMessage("errorWrongDao", getConfig().getString(Config.DAO_TYPE),
-                    DataAccessObjectFactory.CSV_WRITE_TYPE + " or " + DataAccessObjectFactory.DATABASE_WRITE_TYPE,
+                    DataAccessObjectFactory.CSV_WRITE_TYPE + " or " + DataAccessObjectFactory.DATABASE_WRITE_TYPE + " or "
+                    + DataAccessObjectFactory.BLOB_WRITE_TYPE,
                     getConfig().getString(Config.OPERATION));
             getLogger().fatal(errMsg);
             throw new DataAccessObjectInitializationException(errMsg);
@@ -85,7 +87,24 @@ abstract class AbstractExtractAction extends AbstractAction {
     }
 
     private List<String> getDaoColumns() {
-        ((SOQLMapper)getController().getMapper()).initSoqlMapping(getConfig().getString(Config.EXTRACT_SOQL));
+        String soqlExtract = getConfig().getString(Config.EXTRACT_SOQL);
+        boolean incrementalExport = getConfig().getBoolean(Config.INCREMENTAL_EXPORT);
+        String incrementalTimestamp = getConfig().getString(Config.INCREMENTAL_TIMESTAMP);
+        String lastRunDate = getConfig().getString(LastRun.LAST_RUN_DATE);
+
+        if(incrementalExport){
+            if(incrementalTimestamp == ""){
+                soqlExtract += " WHERE LastModifiedDate >= " + lastRunDate;
+            }else {
+                if(!soqlExtract.contains("WHERE"))
+                    soqlExtract += " WHERE LastModifiedDate >= " + incrementalTimestamp;
+                else
+                    soqlExtract += " AND LastModifiedDate >= " + incrementalTimestamp;
+            }
+        }
+
+        ((SOQLMapper)getController().getMapper()).initSoqlMapping(soqlExtract);
+
         return ((SOQLMapper)getController().getMapper()).getDaoColumnsForSoql();
     }
 

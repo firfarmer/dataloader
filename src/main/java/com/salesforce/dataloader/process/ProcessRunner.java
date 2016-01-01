@@ -52,7 +52,7 @@ package com.salesforce.dataloader.process;
 
 
 /**
- * @author Lexi Viripaeff
+ * @author Lexi Viripaeff and Kevin Ulrich
  */
 
 import java.util.*;
@@ -77,6 +77,14 @@ public class ProcessRunner implements InitializingBean, Job, Runnable {
      * Comment for <code>PROCESS_NAME</code>
      */
     public static final String PROCESS_NAME = "process.name";
+
+    //incremental export charsequences
+    public static final CharSequence INCREMENTAL_EXPORT_SWITCH = "-i";
+    public static final CharSequence INCREMENTAL_TIMESTAMP_SWITCH = "-t";
+
+    //incremental export vars
+    private static String incrementalTimestamp;
+    private static boolean incrementalExport;
 
     //logger
     private static final Logger logger = Logger.getLogger(ProcessRunner.class);
@@ -115,6 +123,11 @@ public class ProcessRunner implements InitializingBean, Job, Runnable {
         try {
             logger.info(Messages.getString("Process.initializingEngine")); //$NON-NLS-1$
             Config config = controller.getConfig();
+
+            //write incremental export vars to config, since this is the only place in ProcessRunner where config is created
+            config.setValue(Config.INCREMENTAL_EXPORT, incrementalExport);
+            config.setValue(Config.INCREMENTAL_TIMESTAMP, incrementalTimestamp);
+
             // load parameter overrides (from command line or caller context)
             logger.info(Messages.getString("Process.loadingParameters")); //$NON-NLS-1$
             config.loadParameterOverrides(getConfigOverrideMap());
@@ -242,6 +255,20 @@ public class ProcessRunner implements InitializingBean, Job, Runnable {
     public static void main(String[] args) {
         ProcessRunner runner = null;
         try {
+            //look at arguments starting at args[2]
+            if(args.length>2) {
+                for (int i = 2; i < args.length; i++) {
+                    if (args[i].contains(INCREMENTAL_EXPORT_SWITCH)) {
+                        //-i flag has been found so we are doing an incremental export
+                        incrementalExport = true;
+                    } else if (args[i].contains(INCREMENTAL_TIMESTAMP_SWITCH)) {
+                        //we have gotten a -t so we go to the next argument and store it as providedTimestamp
+                        i++;
+                        incrementalTimestamp = args[i];
+                    }
+                }
+            }
+
             // create the process
             runner = ProcessRunner.getInstance(args);
             if (runner == null) topLevelError("Process runner is null", new NullPointerException());
@@ -258,6 +285,10 @@ public class ProcessRunner implements InitializingBean, Job, Runnable {
 
     /**
      * Get an instance of the engine runner that can be scheduled in it's own thread
+     *
+     * args[0] = config dir
+     * args[1] = process name
+     * args[2-4] = switches
      *
      * @param args String set of name=value pairs of arguments for the runner
      * @throws ProcessInitializationException
@@ -281,6 +312,7 @@ public class ProcessRunner implements InitializingBean, Job, Runnable {
      */
     public static ProcessRunner getInstance(Map<String, String> argMap) throws ProcessInitializationException {
         ProcessRunner runner;
+
         if(argMap != null && argMap.containsKey(PROCESS_NAME)) {
             // if process name is specified, get it from configuration
             String processName = argMap.get(PROCESS_NAME);
@@ -292,6 +324,8 @@ public class ProcessRunner implements InitializingBean, Job, Runnable {
             runner = new ProcessRunner();
             runner.setConfigOverrideMap(argMap);
         }
+
+
         return runner;
     }
 
@@ -306,6 +340,21 @@ public class ProcessRunner implements InitializingBean, Job, Runnable {
             }
         }
         return argMap;
+    }
+
+    /**
+     * Gets whether or not we are doing an incremental export
+     * @return boolean status of incremental export
+     */
+    public boolean getIncrementalExport(){
+        return incrementalExport;
+    }
+
+    /**
+     * Gets a specified timestamp to base incremental export off of
+     */
+    public String getIncrementalTimestamp(){
+        return incrementalTimestamp;
     }
 
     /**
@@ -329,4 +378,5 @@ public class ProcessRunner implements InitializingBean, Job, Runnable {
     public Controller getController() {
         return controller;
     }
+
 }

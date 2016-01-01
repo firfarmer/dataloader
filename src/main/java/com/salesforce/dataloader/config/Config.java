@@ -49,7 +49,7 @@ import com.salesforce.dataloader.exception.ParameterLoadException;
 import com.salesforce.dataloader.security.EncryptionUtil;
 
 /**
- * @author Lexi Viripaeff
+ * @author Lexi Viripaeff and Kevin Ulrich
  * @since 6.0
  */
 public class Config {
@@ -207,6 +207,10 @@ public class Config {
     public static final String AZURE_CONTAINER = "azure.container";
     public static final String AZURE_UPLOAD_LINES = "azure.uploadLines";
 
+    //Incremental export vars
+    public static final String INCREMENTAL_EXPORT = "incremental.export";
+    public static final String INCREMENTAL_TIMESTAMP = "incremental.timestamp";
+
     /**
      * Indicates whether a value as been changed
      */
@@ -340,6 +344,11 @@ public class Config {
         setValue(AZURE_URI, DEFAULT_ENDPOINT_URL);
         setValue(AZURE_CONTAINER, STRING_DEFAULT);
         setValue(AZURE_UPLOAD_LINES, DEFAULT_UPLOAD_LINES);
+
+        //Incremental export
+        setValue(INCREMENTAL_EXPORT, BOOLEAN_DEFAULT);
+        setValue(INCREMENTAL_TIMESTAMP, STRING_DEFAULT);
+
     }
 
     /**
