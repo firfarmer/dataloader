@@ -31,6 +31,7 @@ import org.apache.log4j.Logger;
 import com.salesforce.dataloader.security.EncryptionUtil;
 import com.salesforce.dataloader.config.Messages;
 import java.security.GeneralSecurityException;
+import java.sql.SQLFeatureNotSupportedException;
 
 import org.apache.commons.dbcp.BasicDataSource;
 
@@ -64,13 +65,13 @@ public class EncryptedDataSource extends org.apache.commons.dbcp.BasicDataSource
     }
 
     public synchronized void setPassword(String encodedPassword) {
-    	this.password = decode(encodedPassword);
+        this.password = decode(encodedPassword);
     }
-    
+
     private String decode(String password) {
         return new String(DecryptString(encrypter, password));
     }
-    
+
     /* Decrypt property with propName using the encrypter. If decryption succeeds, return the decrypted value
      *
      * @param propMap
@@ -83,19 +84,24 @@ public class EncryptedDataSource extends org.apache.commons.dbcp.BasicDataSource
         if (encryptedString != null && encryptedString.length() > 0) {
             try {
                 return encrypter.decryptString(encryptedString);
-            } 
-            
+            }
+
             catch (Exception e) {
-            	String errMsg = Messages.getFormattedString("Config.errorParameterLoad", 
-                	new String[] { "db password", String.class.getName() });                
+                String errMsg = Messages.getFormattedString("Config.errorParameterLoad",
+                        new String[] { "db password", String.class.getName() });
                 logger.error(errMsg, e);
                 e.printStackTrace();
             }
         }
         return null;
     }
-    
+
     private final EncryptionUtil encrypter = new EncryptionUtil();
-    
+
     private static Logger logger = Logger.getLogger(EncryptedDataSource.class);
+
+    @Override
+    public java.util.logging.Logger getParentLogger() throws SQLFeatureNotSupportedException {
+        return null;
+    }
 }
